@@ -1,0 +1,62 @@
+
+// Stochastic Cross Alert MT5
+// Developer: Forex Robot Easy Team
+// Website: forexroboteasy.com
+
+// Import necessary libraries
+#include <Trade\Trade.mqh>
+#include <Indicators\Indicators.mqh>
+
+// Define input parameters
+input double crossThreshold = 0.5;  // Threshold for stochastic cross
+input int crossAlertType = 2;  // Type of alert (1 - Popup, 2 - Email, 3 - Push Notification)
+
+// Define global variables
+CTrade trade;  // Object for trading operations
+CIndicators indicators;  // Object for indicator calculations
+int prevCross = 0;  // Previous cross value
+
+// Initialize the indicator
+int OnInit()
+{
+    // Set up the indicator settings
+    indicators.SetIndexBuffer(0, main_buffer);  // Main buffer for the indicator
+    SetIndexStyle(0, DRAW_LINE);  // Set the style of the indicator line
+
+    return(INIT_SUCCEEDED);
+}
+
+// Start the indicator
+void OnTick()
+{
+    // Calculate the indicator values
+    int countedBars = IndicatorCounted();
+    int limit = Bars - countedBars;
+    for (int i = limit; i >= 0; i--)
+    {
+        double stochasticValue = iStochastic(Symbol(), PERIOD_CURRENT, 5, 3, 3, MODE_MAIN, i);
+        double prevStochasticValue = iStochastic(Symbol(), PERIOD_CURRENT, 5, 3, 3, MODE_MAIN, i + 1);
+
+        // Check for stochastic cross
+        if ((prevStochasticValue < crossThreshold && stochasticValue >= crossThreshold) ||
+            (prevStochasticValue > crossThreshold && stochasticValue <= crossThreshold))
+        {
+            // Check for previous cross to avoid duplicate alerts
+            if (prevCross != 0 && prevCross != i)
+            {
+                // Alert the trader
+                Alert('Stochastic Cross Alert: Cross detected at bar ', i);
+
+                // Perform the specified type of alert
+                if (crossAlertType == 1)
+                    Alert('Stochastic Cross Alert: Cross detected at bar ', i);
+                else if (crossAlertType == 2)
+                    SendMail('Stochastic Cross Alert', 'Cross detected at bar ' + i);
+                else if (crossAlertType == 3)
+                    SendNotification('Stochastic Cross Alert', 'Cross detected at bar ' + i);
+
+                prevCross = i;
+            }
+        }
+    }
+}
